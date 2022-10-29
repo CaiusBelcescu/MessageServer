@@ -2,21 +2,21 @@
 A message server where all the activities must be done simultaneously
 
 Functional Requirements:
-- Consists of users which can send messages to a server
-- All messages should be sent simultaneously
-- All messages should be received simultaneously (if everyone has internet )
-- Servers can be created and deleted
-- People can be added
-- People can be ejected
+- a user is a sender or a reciver
+- a user can send a message 
+- a user can recieve a message 
+- a user can choose between sending a private message and sending a message to all online users
+
 
 Non-Functional Requirements:
-- If a message is sent without access to internet, the message should be stored in a queue until the internet access is restored
-- If a user has no connection to the internet he should see all the messages stored before the interuption 
+- delete messages after a period of time
+- each period of time the application checks the online users
+- if a message has no reciever the message will not be sent
+- the message queues can hold a maximum number of messages
 
 Entities:
 - Sender 
 - Reciver
-- Server Admin
 - Topic 
 - Queue
 - Message
