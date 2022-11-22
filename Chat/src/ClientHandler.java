@@ -31,10 +31,39 @@ public class ClientHandler implements Runnable{
         while (socket.isConnected()){
             try{
                 messageFromClient  = bufferedReader.readLine();
-                broadcastMessage(messageFromClient);
+                if(messageFromClient.contains("->")) {
+                    String[] stringToSend = messageFromClient.split("->");
+                    messageFromClient  = stringToSend[1];
+                    String nameToSend =  stringToSend[0];
+                    String[] nameToSend2 = nameToSend.split(":");
+                    nameToSend = nameToSend2[1];
+
+                    broadcastMessage(messageFromClient,nameToSend);
+                }else{
+                    broadcastMessage(messageFromClient);
+                }
             }catch (IOException e){
                 //closeEverything(socket,bufferedReader,bufferedWriter);
                 break;
+            }
+        }
+    }
+
+    public void broadcastMessage(String messageToSend, String nameToSend) {
+        if(messageToSend == null) {
+            closeEverything(socket, bufferedReader, bufferedWriter);
+        }else {
+            for( ClientHandler clientHandler : clientHandlers){
+                try {
+                    if(clientHandler.clientUsername.equals(nameToSend.trim())){
+                        messageToSend = "Private message from " + clientUsername + ":" + messageToSend;
+                        clientHandler.bufferedWriter.write(messageToSend);
+                        clientHandler.bufferedWriter.newLine();
+                        clientHandler.bufferedWriter.flush();
+                    }
+                }catch (IOException e){
+                    closeEverything(socket,bufferedReader,bufferedWriter);
+                }
             }
         }
     }
