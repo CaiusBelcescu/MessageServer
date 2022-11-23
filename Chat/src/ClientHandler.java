@@ -18,7 +18,7 @@ public class ClientHandler implements Runnable{
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.clientUsername = bufferedReader.readLine();
             clientHandlers.add(this);
-            broadcastMessage("Sever: " + clientUsername + "has entered the chat");
+            broadcastMessage("Sever: " + clientUsername + " has entered the chat");
         } catch (IOException e) {
             closeEverything(socket,bufferedReader,bufferedWriter);
         }
@@ -31,7 +31,7 @@ public class ClientHandler implements Runnable{
         while (socket.isConnected()){
             try{
                 messageFromClient  = bufferedReader.readLine();
-                if(messageFromClient.contains("->")) {
+                if(messageFromClient!=null && messageFromClient.contains("->")) {
                     String[] stringToSend = messageFromClient.split("->");
                     messageFromClient  = stringToSend[1];
                     String nameToSend =  stringToSend[0];
