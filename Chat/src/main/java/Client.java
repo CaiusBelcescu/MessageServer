@@ -1,85 +1,70 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Client {
+    private Sender producer;
+    private Receiver consumer;
+    private String user;
+    private final ScheduledExecutorService clientScheduler = Executors.newScheduledThreadPool(1);
 
-    private Socket socket;
-    private BufferedReader bufferedReader;
-    private BufferedWriter bufferedWriter;
-    private String clientUsername;
+    public Client(String user) throws IOException, TimeoutException {
+        this.user = user;
+        this.producer = new Sender();
+        this.consumer = new Receiver(user);
+        String result = sendMessage("addUser" + "->" + user, "server");
+        if (result.equals("false"))
+            System.out.println("Exists User");
 
-    public Client(Socket socket,String clientUsername){
-        try{
-            this.socket=socket;
-            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            this.clientUsername= clientUsername;
-        }catch (IOException e){
-            closeEverything(socket,bufferedReader,bufferedWriter);
-        }
+        ping(); //server knows the status
+        consumer.consumeMessage();
+        consumer.subscribeTopic();
     }
 
-    public void sendMessage(){
+
+    public String getUser() {
+        return user;
+    }
+
+    public void exit() throws IOException {
+        this.producer.closeConnection();
+        this.consumer.closeConsConnection();
+    }
+
+    public String sendMessage(String message, String user) throws IOException, TimeoutException {
+
         try {
-            bufferedWriter.write(clientUsername);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
+            String result = producer.sendMessage(message, user, getUser());
 
-            Scanner scanner = new Scanner(System.in);
-            while(socket.isConnected()){
-                String messageToSend = scanner.nextLine();
-                bufferedWriter.write(clientUsername+": "+ messageToSend);
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
+            if (result.equals("not found")) {
+                System.out.println("Offline User");
+                return result;
             }
-        }catch (IOException e){
-            closeEverything(socket,bufferedReader,bufferedWriter);
+
+        } catch (Exception e) {
+            String exceptionMessage = e.getMessage();
+            System.out.println(exceptionMessage);
+        } finally {
+            return "";
         }
+
     }
 
-    public void listenForMessage(){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String messageFromGroupChat;
+    public void ping() {
 
-                while (socket.isConnected()){
-                    try {
-                        messageFromGroupChat = bufferedReader.readLine();
-                        System.out.println(messageFromGroupChat);
+        final Runnable runnable = () -> {
+            try {
+                sendMessage("PING" + "::" + user, "server");
+            } catch (IOException | TimeoutException e) {
+                e.printStackTrace();
+            }
+        };
 
-                    }catch (IOException e){
-                        closeEverything(socket,bufferedReader,bufferedWriter);
-                    }
-                }
-            }
-        }).start();
-    }
-
-    public void closeEverything(Socket socket,BufferedReader bufferedReader, BufferedWriter bufferedWriter){
-        try {
-            if(bufferedReader != null){
-                bufferedReader.close();
-            }
-            if(bufferedWriter != null){
-                bufferedWriter.close();
-            }
-            if(socket != null){
-                socket.close();
-            }
-        }catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    public  static void main (String[] args) throws IOException {
-        Scanner scanner= new Scanner(System.in);
-        System.out.println("Enter the username: ");
-        String username = scanner.nextLine();
-        Socket socket =new Socket("localhost",1234);
-        Client client = new Client(socket,username);
-        client.listenForMessage();
-        client.sendMessage();
+        //sends ping
+        clientScheduler.scheduleAtFixedRate(runnable, 0, 5000, TimeUnit.MILLISECONDS);
     }
 }
