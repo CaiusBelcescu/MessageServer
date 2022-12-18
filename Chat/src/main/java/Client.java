@@ -58,7 +58,7 @@ public class Client {
 
         final Runnable runnable = () -> {
             try {
-                sendMessage("PING" + "::" + user, "server");
+                sendMessage("PING" + "->" + user, "server");
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
             }

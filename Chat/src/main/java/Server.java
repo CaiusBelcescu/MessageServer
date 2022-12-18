@@ -1,30 +1,17 @@
+
+import Models.ModelTimestamp;
 import com.rabbitmq.client.*;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 
-
 public class Server extends Thread{
-
     private static Map<String, Long> clientList = new ConcurrentHashMap<>();
-    //private static ModelTimestamp serverTimestamp = new ModelTimestamp();
-    private final ScheduledExecutorService serverExecutorScheduler = Executors.newScheduledThreadPool(1);
-    private static Long time;
-
-    public long getTime() {
-        time = System.currentTimeMillis();
-        return time;
-    }
-
-    @Override
-    public String toString() {
-        return "" + time;
-    }
+    private static ModelTimestamp serverTimestamp = new ModelTimestamp();
+    private final ScheduledExecutorService serverScheduler = Executors.newScheduledThreadPool(1);
 
     public void run(){
         final Thread thread = new Thread(() -> {
@@ -32,7 +19,9 @@ public class Server extends Thread{
                 verifyUsersConnectivity();
             } catch (IOException e) {}
         });
-        serverExecutorScheduler.scheduleAtFixedRate(thread, 0, 10000, TimeUnit.MILLISECONDS);
+
+        //every 5 seconds verify user connectivity
+        serverScheduler.scheduleAtFixedRate(thread, 0, 5000, TimeUnit.MILLISECONDS);
     }
 
     //checks the timestamp of all users
@@ -44,7 +33,7 @@ public class Server extends Thread{
             while (iterator.hasNext()){
                 Map.Entry<String, Long> entry = iterator.next();
                 if(client.equals(entry.getKey())) {
-                    long idleTime = (-1 * (entry.getValue() - time));
+                    long idleTime = (-1 * (entry.getValue() - serverTimestamp.getTime()));
                     if(idleTime > 5100){
                         System.out.println("Client " + client + " idle for: " + idleTime/1000 + " seconds, removing");
                         clientList.remove(client);
@@ -64,7 +53,7 @@ public class Server extends Thread{
 
         if(!clients.contains(username))
         {
-            clientList.put(username, time);
+            clientList.put(username, serverTimestamp.getTime());
             System.out.println("Added new user! (" + username + ")");
         }
         else System.out.println("User " + username + " exists!" );
@@ -97,7 +86,7 @@ public class Server extends Thread{
         while (iterator.hasNext()){
             Map.Entry<String, Long> entry = iterator.next();
             if(user.equals(entry.getKey())){
-                entry.setValue(Long.parseLong(""+time));
+                entry.setValue(Long.parseLong(""+serverTimestamp.getTime()));
                 return true;
             }
         }
@@ -127,7 +116,7 @@ public class Server extends Thread{
 
             String response = "";
 
-            String[] request = new String(delivery.getBody(), StandardCharsets.UTF_8).split("::");
+            String[] request = new String(delivery.getBody(), StandardCharsets.UTF_8).split("->");
 
             switch(request[0]){
                 case "addUser":

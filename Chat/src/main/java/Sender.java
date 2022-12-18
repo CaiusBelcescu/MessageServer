@@ -36,7 +36,7 @@ public class Sender {
                         return requestToServer(prodChannel, message, user);
                     default:
                         if(verifyUserConnected(prodChannel, "CONNECTED?" +
-                            "::" + user)) return postMessage(prodChannel, message, user, sender);
+                            "->" + user)) return postMessage(prodChannel, message, user, sender);
                         return "not found";
                 }
     }
@@ -46,7 +46,7 @@ public class Sender {
             try
             {
                 createQueue(channel, queue);
-                String senderAndMessage = sender + "::" + message;
+                String senderAndMessage = sender + "->" + message;
 
                 channel.basicPublish("", queue, false, null, senderAndMessage.getBytes());
                 return "";

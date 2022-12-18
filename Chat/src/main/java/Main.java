@@ -1,3 +1,5 @@
+import org.apache.log4j.BasicConfigurator;
+
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
@@ -6,6 +8,8 @@ import java.util.concurrent.TimeoutException;
 public class Main {
 
     public static void main(String[] args) throws IOException, TimeoutException {
+
+        //BasicConfigurator.configure();
         System.out.println("For starting the server type 1,and for creating a client type 2 ");
 
         Scanner scanner = new Scanner(System.in);
@@ -31,8 +35,8 @@ public class Main {
                             System.exit(0);
                             break;
                         default:
-                            if(input.contains("::")) {
-                                String[] request = input.split("::");
+                            if(input.contains("->")) {
+                                String[] request = input.split("->");
                                 newClient.sendMessage(request[1],request[0]);
                             }
                     }
