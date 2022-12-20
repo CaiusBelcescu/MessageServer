@@ -11,8 +11,8 @@ import java.util.concurrent.TimeoutException;
 public class Receiver {
 
     private String queue;
-    private Channel consChannel;
-    private Connection consConnection;
+    private Channel receiverChannel;
+    private Connection receiverConnection;
 
     public String queueName;
 
@@ -20,31 +20,27 @@ public class Receiver {
     private final ScheduledExecutorService consScheduler = Executors.newScheduledThreadPool(1);
 
     public Receiver(String username, String desiredTopic) throws IOException, TimeoutException {
-        ConnectionFactory consConnectionFactory = new ConnectionFactory();
-        consConnectionFactory.setHost("localhost");
+        ConnectionFactory receiverConnectionFactory = new ConnectionFactory();
+        receiverConnectionFactory.setHost("localhost");
         queue = username;
-        consConnection = consConnectionFactory.newConnection();
-        consChannel = consConnection.createChannel();
+        receiverConnection = receiverConnectionFactory.newConnection();
+        receiverChannel = receiverConnection.createChannel();
 
-        consChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
-        queueName = consChannel.queueDeclare().getQueue();
+        receiverChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
+        queueName = receiverChannel.queueDeclare().getQueue();
 
-        consChannel.queueBind(queueName, "my-topic-exchange", desiredTopic);
+        receiverChannel.queueBind(queueName, "my-topic-exchange", desiredTopic);
 
         this.desiredTopic = desiredTopic;
-    }
-
-    public void closeConsConnection() throws IOException {
-        consConnection.close();
     }
 
     public void consumeMessage()
     {
         final Runnable runnable = () -> {
             try {
-                consChannel.queueDeclare(queue, false, false, false, null);
+                receiverChannel.queueDeclare(queue, false, false, false, null);
 
-                consChannel.basicConsume(queue, true, (consLbl, message) -> {
+                receiverChannel.basicConsume(queue, true, (consLbl, message) -> {
                     String receivedMessage = new String(message.getBody(), StandardCharsets.UTF_8);
                     System.out.println("Received: "+receivedMessage);
                 }, consLbl -> {});
@@ -61,9 +57,7 @@ public class Receiver {
         Thread thread = new Thread(() -> {
 
             try {
-
-
-                consChannel.basicConsume(queueName, true, ((consumerTag, message) -> {
+                receiverChannel.basicConsume(queueName, true, ((consumerTag, message) -> {
                     System.out.println("From " + desiredTopic +":"+ new String(message.getBody()));
                 }), consumerTag -> {
                     System.out.println(consumerTag);
@@ -73,7 +67,6 @@ public class Receiver {
             }
             while(true){}
         });
-
         thread.start();
     }
 }

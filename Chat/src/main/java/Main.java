@@ -7,9 +7,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException, TimeoutException {
 
-        //BasicConfigurator.configure();
         System.out.println("For starting the server type 1,and for creating a client type 2 ");
-
         Scanner scanner = new Scanner(System.in);
         String aux=scanner.nextLine();
         if(aux.equals("1")){ //this part handles the creation of the server
@@ -27,12 +25,10 @@ public class Main {
                 System.out.println("What do you want to do?");
                 System.out.println("For sending a message to a user simply type |the desired username destination|->Message");
                 System.out.println("For sending a topic message simply type topic->Football->Message");
-                System.out.println("For exit type exit."); //TO DO
                 String input=scanner.nextLine();
                 while(!input.isEmpty()){
                     switch(input){
                         case "exit":
-                            //newClient.exit();
                             System.exit(0);
                             break;
                         default:

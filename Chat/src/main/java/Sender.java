@@ -9,33 +9,29 @@ import java.util.concurrent.BlockingQueue;
 
 public class Sender {
 
-    private Connection prodConnection;
-    private Channel prodChannel;
+    private Connection senderConnection;
+    private Channel senderChannel;
 
     public Sender() throws IOException, TimeoutException {
 
         ConnectionFactory producerFactory = new ConnectionFactory();
         producerFactory.setHost("localhost");
-
-        prodConnection = producerFactory.newConnection();
-        prodChannel = prodConnection.createChannel();
-
-        prodChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
-
+        senderConnection = producerFactory.newConnection();
+        senderChannel = senderConnection.createChannel();
+        senderChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
     }
 
 
     public String sendMessage(String message, String user, String sender,String topicType){
-
         switch(user)
                 {
                     case "topic":
-                        return postTopic(prodChannel, message,topicType);
+                        return postTopic(senderChannel, message,topicType);
                     case "server":
-                        return requestToServer(prodChannel, message, user);
+                        return requestToServer(senderChannel, message, user);
                     default:
-                        if(verifyUserConnected(prodChannel, "CONNECTED?" +
-                            "->" + user)) return postMessage(prodChannel, message, user, sender);
+                        if(verifyUserConnected(senderChannel, "CONNECTED?" +
+                            "->" + user)) return postMessage(senderChannel, message, user, sender);
                         return "not found";
                 }
     }
@@ -46,7 +42,6 @@ public class Sender {
             {
                 createQueue(channel, queue);
                 String senderAndMessage = sender + "->" + message;
-
                 channel.basicPublish("", queue, false, null, senderAndMessage.getBytes());
                 return "";
             }
@@ -69,16 +64,15 @@ public class Sender {
                 String replyQueueName = channel.queueDeclare().getQueue();
 
                 AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().correlationId(corrId).replyTo(replyQueueName).build();
-
                 channel.basicPublish("", "server", properties, user.getBytes());
 
                 final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
 
-                String ctag = channel.basicConsume(replyQueueName, true, (cTag, delivery) -> {
+                String ctag = channel.basicConsume(replyQueueName, true, (consumeTag, delivery) -> {
                     if (delivery.getProperties().getCorrelationId().equals(corrId)) {
                         response.offer(new String(delivery.getBody(), StandardCharsets.UTF_8));
                     }
-                }, cTag -> {
+                }, consumeTag -> {
                 });
 
                 String result = response.take();
@@ -95,56 +89,45 @@ public class Sender {
         }
 
 
-        private String requestToServer(Channel channel, String message, String queue)
-            {
-                try
-                {
-                    final String corrId = java.util.UUID.randomUUID().toString();
-                    String replyQueue = channel.queueDeclare().getQueue();
+    private String requestToServer(Channel channel, String message, String queue)
+    {
+        try
+        {
+            final String corrId = java.util.UUID.randomUUID().toString();
+            String replyQueue = channel.queueDeclare().getQueue();
 
-                    AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().correlationId(corrId).replyTo(replyQueue).build();
+            AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder().correlationId(corrId).replyTo(replyQueue).build();
 
-                    channel.basicPublish("", queue, properties, message.getBytes());
+            channel.basicPublish("", queue, properties, message.getBytes());
 
-                    final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
+            final BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
 
-                    String ctag = channel.basicConsume(replyQueue, true, (cTag, delivery) -> {
-                        if (delivery.getProperties().getCorrelationId().equals(corrId)) {
-                            response.offer(new String(delivery.getBody(), StandardCharsets.UTF_8));
-                        }
-                    }, cTag -> {
-                    });
-
-                    String result = response.take();
-                    channel.basicCancel(ctag);
-                    return result;
+            String ctag = channel.basicConsume(replyQueue, true, (consumeTag, delivery) -> {
+                if (delivery.getProperties().getCorrelationId().equals(corrId)) {
+                    response.offer(new String(delivery.getBody(), StandardCharsets.UTF_8));
                 }
-                catch (IOException | InterruptedException e)
-                {
-                    e.printStackTrace();
-                }
-                return "";
-            }
+            }, consumeTag -> {
+            });
 
-
-
-    public void closeConnection() throws IOException {
-        prodConnection.close();
+            String result = response.take();
+            channel.basicCancel(ctag);
+            return result;
+        }
+        catch (IOException | InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     public String postTopic(Channel channel, String message, String topicType)
     {
         try
         {
-
-
             AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
                     .expiration("10000")
                     .build();
-
             channel.basicPublish("my-topic-exchange", topicType, null, message.getBytes());
-
-
             return "";
         }
         catch(IOException e)
@@ -152,10 +135,5 @@ public class Sender {
             e.printStackTrace();
         }
         return "";
-    }
-
-    public static void subscribeMessage(Channel channel, String message1, String topicType) throws IOException, TimeoutException {
-
-
     }
 }
