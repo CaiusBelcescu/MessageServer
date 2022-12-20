@@ -51,23 +51,17 @@ public class Receiver {
     public void subscribeTopic()
     {
         Thread thread = new Thread(() -> {
+
             try {
-                consChannel.exchangeDeclare("topicQueue", "fanout");
-
-                String queue = consChannel.queueDeclare().getQueue();
-
-                consChannel.queueBind(queue, "topicQueue", "");
-
-                DeliverCallback deliverCallback = (consLbl, deliveryMessage) -> {
-                    String receivedMessage = new String(deliveryMessage.getBody(), "UTF-8");
-                    System.out.println("Topic received: " + receivedMessage);
-                };
-
-                consChannel.basicConsume(queue, true, deliverCallback, consLbl -> { });
+                consChannel.basicConsume("HealthQ", true, ((consumerTag, message) -> {
+                    System.out.println("\n\n=========== Health Queue ==========");
+                    System.out.println("HealthQ: " + new String(message.getBody()));
+                }), consumerTag -> {
+                    System.out.println(consumerTag);
+                });
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
-
             while(true){}
         });
 

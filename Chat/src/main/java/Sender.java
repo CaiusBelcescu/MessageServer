@@ -1,8 +1,6 @@
 
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.*;
+
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
@@ -23,15 +21,16 @@ public class Sender {
 
         prodConnection = producerFactory.newConnection();
         prodChannel = prodConnection.createChannel();
+
     }
 
 
-    public String sendMessage(String message, String user, String sender){
+    public String sendMessage(String message, String user, String sender,String topicType){
 
         switch(user)
                 {
                     case "topic":
-                        //return postTopic(channel, message);
+                        return postTopic(prodChannel, message,topicType);
                     case "server":
                         return requestToServer(prodChannel, message, user);
                     default:
@@ -56,6 +55,7 @@ public class Sender {
             }
             return "";
     }
+
 
     private void createQueue(Channel channel, String queueName) throws IOException{
             channel.queueDeclare(queueName, false, false, false, null);
@@ -130,5 +130,45 @@ public class Sender {
 
     public void closeConnection() throws IOException {
         prodConnection.close();
+    }
+
+    public String postTopic(Channel channel, String message1, String topicType)
+    {
+        try
+        {
+            channel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
+            prodChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
+
+            prodChannel.queueDeclare("HealthQ", true, false, false, null);
+            prodChannel.queueDeclare("SportsQ", true, false, false, null);
+            prodChannel.queueDeclare("EducationQ", true, false, false, null);
+
+            prodChannel.queueBind("HealthQ", "my-topic-exchange", "health.*");
+            prodChannel.queueBind("SportsQ", "my-topic-exchange", "#.sports.*");
+            prodChannel.queueBind("EducationQ", "my-topic-exchange", "#.education");
+            AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                    .expiration("10000")
+                    .build();
+
+            String message = "Drink a lot of Water and stay Healthy!";
+            channel.basicPublish("my-topic-exchange", "health.education", null, message.getBytes());
+
+            message = "Learn something new everyday";
+            channel.basicPublish("my-topic-exchange", "education", null, message.getBytes());
+
+            message = "Stay fit in Mind and Body";
+            channel.basicPublish("my-topic-exchange", "education.health", null, message.getBytes());
+            return "";
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    public static void subscribeMessage(Channel channel, String message1, String topicType) throws IOException, TimeoutException {
+
+
     }
 }

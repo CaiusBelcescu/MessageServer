@@ -24,8 +24,8 @@ public class Main {
                 Client newClient = null;
                 newClient = new Client(scanner.nextLine());
                 System.out.println("What do you want to do?");
-                System.out.println("For sending a message to a user simply type |the desired username destination|->|Message|");
-                System.out.println("For sending a topic message simply type |topic|->|Message|");
+                System.out.println("For sending a message to a user simply type |the desired username destination|->Message");
+                System.out.println("For sending a topic message simply type topic->Football->Message");
                 System.out.println("For exit type exit."); //TO DO
                 String input=scanner.nextLine();
                 while(!input.isEmpty()){
@@ -37,7 +37,11 @@ public class Main {
                         default:
                             if(input.contains("->")) {
                                 String[] request = input.split("->");
-                                newClient.sendMessage(request[1],request[0]);
+                                if(request.length >2){
+                                    newClient.sendMessage(request[2],request[0],request[1]);
+                                }else{
+                                    newClient.sendMessage(request[1],request[0],"");
+                                }
                             }
                     }
                     input=scanner.nextLine();
