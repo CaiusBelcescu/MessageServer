@@ -1,7 +1,5 @@
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.*;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
@@ -15,14 +13,25 @@ public class Receiver {
     private String queue;
     private Channel consChannel;
     private Connection consConnection;
+
+    public String queueName;
+
+    public String desiredTopic;
     private final ScheduledExecutorService consScheduler = Executors.newScheduledThreadPool(1);
 
-    public Receiver(String username) throws IOException, TimeoutException {
+    public Receiver(String username, String desiredTopic) throws IOException, TimeoutException {
         ConnectionFactory consConnectionFactory = new ConnectionFactory();
         consConnectionFactory.setHost("localhost");
         queue = username;
         consConnection = consConnectionFactory.newConnection();
         consChannel = consConnection.createChannel();
+
+        consChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
+        queueName = consChannel.queueDeclare().getQueue();
+
+        consChannel.queueBind(queueName, "my-topic-exchange", desiredTopic);
+
+        this.desiredTopic = desiredTopic;
     }
 
     public void closeConsConnection() throws IOException {
@@ -52,9 +61,10 @@ public class Receiver {
         Thread thread = new Thread(() -> {
 
             try {
-                consChannel.basicConsume("HealthQ", true, ((consumerTag, message) -> {
-                    System.out.println("\n\n=========== Health Queue ==========");
-                    System.out.println("HealthQ: " + new String(message.getBody()));
+
+
+                consChannel.basicConsume(queueName, true, ((consumerTag, message) -> {
+                    System.out.println("From " + desiredTopic +":"+ new String(message.getBody()));
                 }), consumerTag -> {
                     System.out.println(consumerTag);
                 });
