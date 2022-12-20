@@ -14,7 +14,7 @@ public class Client {
         this.user = user;
         this.producer = new Sender();
         this.consumer = new Receiver(user);
-        String result = sendMessage("addUser" + "->" + user, "server");
+        String result = sendMessage("addUser" + "->" + user, "server","");
         if (result.equals("false"))
             System.out.println("Exists User");
 
@@ -33,10 +33,10 @@ public class Client {
         this.consumer.closeConsConnection();
     }
 
-    public String sendMessage(String message, String user) throws IOException, TimeoutException {
+    public String sendMessage(String message, String user,String topicType) throws IOException, TimeoutException {
 
         try {
-            String result = producer.sendMessage(message, user, getUser());
+            String result = producer.sendMessage(message, user, getUser(),topicType);
 
             if (result.equals("not found")) {
                 System.out.println("Offline User");
@@ -56,7 +56,7 @@ public class Client {
 
         final Runnable runnable = () -> {
             try {
-                sendMessage("PING" + "->" + user, "server");
+                sendMessage("PING" + "->" + user, "server","");
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
             }
