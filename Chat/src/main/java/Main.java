@@ -40,8 +40,10 @@ public class Main {
                                 String[] request = input.split("->");
                                 if(request.length >2){
                                     newClient.sendMessage(request[2],request[0],request[1].toLowerCase());
+                                    newClient.sendMessage("TopicWords->" + request[2],"server","");
                                 }else{
                                     newClient.sendMessage(request[1],request[0],"");
+                                    newClient.sendMessage("RefreshWords->" + request[1],"server","");
                                 }
                             }
                     }
