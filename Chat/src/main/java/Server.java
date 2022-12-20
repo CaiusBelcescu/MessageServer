@@ -12,39 +12,72 @@ public class Server extends Thread{
     private static Map<String, Long> clientList = new ConcurrentHashMap<>();
     private static ModelTimestamp serverTimestamp = new ModelTimestamp();
     private final ScheduledExecutorService serverScheduler = Executors.newScheduledThreadPool(1);
+    private static Map<String, Integer> wordList = new ConcurrentHashMap<>();
+    private static Map<String, Integer> wordListTopic = new ConcurrentHashMap<>();
 
     public void run(){
         final Thread thread = new Thread(() -> {
             try {
-                verifyUsersConnectivity();
+//                verifyUsersConnectivity();
+                  checkWordFrequencyDirectMessages();
+                  checkWordFrequencyTopics();
             } catch (IOException e) {}
         });
 
         //every 5 seconds verify user connectivity
-        serverScheduler.scheduleAtFixedRate(thread, 0, 5000, TimeUnit.MILLISECONDS);
+        serverScheduler.scheduleAtFixedRate(thread, 0, 10000, TimeUnit.MILLISECONDS);
     }
 
-    //checks the timestamp of all users
-    public void verifyUsersConnectivity() throws IOException{
-        List<String> clients = new ArrayList(clientList.keySet());
+//    //checks the timestamp of all users
+//    public void verifyUsersConnectivity() throws IOException{
+//        List<String> clients = new ArrayList(clientList.keySet());
+//
+//        for(String client: clients){
+//            Iterator<Map.Entry<String, Long>> iterator = clientList.entrySet().iterator();
+//            while (iterator.hasNext()){
+//                Map.Entry<String, Long> entry = iterator.next();
+//                if(client.equals(entry.getKey())) {
+//                    long idleTime = (-1 * (entry.getValue() - serverTimestamp.getTime()));
+//                    if(idleTime > 5100){
+//                        System.out.println("Client " + client + " idle for: " + idleTime/1000 + " seconds, removing");
+//                        clientList.remove(client);
+//                        iterator.remove();
+//                    }
+//                    else {
+//                        System.out.println("Client " + client + " idle for: " + idleTime/1000 + " seconds, updating timeStamp");
+//                    }
+//                }
+//            }
+//        }
+//    }
 
-        for(String client: clients){
-            Iterator<Map.Entry<String, Long>> iterator = clientList.entrySet().iterator();
-            while (iterator.hasNext()){
-                Map.Entry<String, Long> entry = iterator.next();
-                if(client.equals(entry.getKey())) {
-                    long idleTime = (-1 * (entry.getValue() - serverTimestamp.getTime()));
-                    if(idleTime > 5100){
-                        System.out.println("Client " + client + " idle for: " + idleTime/1000 + " seconds, removing");
-                        clientList.remove(client);
-                        iterator.remove();
-                    }
-                    else {
-                        System.out.println("Client " + client + " idle for: " + idleTime/1000 + " seconds, updating timeStamp");
-                    }
-                }
+    public static void checkWordFrequencyDirectMessages() throws IOException{
+        List<String> words = new ArrayList<>(wordList.keySet());
+        Integer max = 0;
+        String key="";
+        for(Map.Entry<String, Integer> word: wordList.entrySet())
+        {
+            if(max < word.getValue()){
+                key = word.getKey();
+                max= word.getValue();
             }
         }
+        System.out.println("The most used word is:" + key);
+    }
+
+
+    public static void checkWordFrequencyTopics() throws IOException{
+        List<String> words = new ArrayList<>(wordListTopic.keySet());
+        Integer max = 0;
+        String key="";
+        for(Map.Entry<String, Integer> word: wordListTopic.entrySet())
+        {
+            if(max < word.getValue()){
+                key = word.getKey();
+                max= word.getValue();
+            }
+        }
+        System.out.println("The most used word in a topic is:" + key);
     }
 
     //add user to clientList
@@ -70,6 +103,32 @@ public class Server extends Thread{
 
         return false;
     }
+
+    public static void refreshWords(String message){
+        String[] words = message.split(" ");
+
+        for(String word:words){
+            if(!wordList.containsKey(word)){
+                wordList.put(word, 1);
+            }else{
+                wordList.put(word,wordList.get(word) + 1);
+            }
+        }
+    }
+
+    public static void topicWords(String message){
+        String[] words = message.split(" ");
+
+        for(String word:words){
+            if(!wordListTopic.containsKey(word)){
+                wordListTopic.put(word, 1);
+            }else{
+                wordListTopic.put(word,wordListTopic.get(word) + 1);
+            }
+        }
+    }
+
+
 
     //shows all online users
     public static void showOnlineUsers(){
@@ -130,6 +189,11 @@ public class Server extends Thread{
                         response = "true";
                     else response = "false";
                     break;
+                case "RefreshWords":
+                    refreshWords(request[1]);
+                    break;
+                case "TopicWords":
+                    topicWords(request[1]);
                 default:
             }
 
