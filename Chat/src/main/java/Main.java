@@ -1,5 +1,3 @@
-import org.apache.log4j.BasicConfigurator;
-
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.concurrent.TimeoutException;
