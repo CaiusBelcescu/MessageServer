@@ -18,38 +18,12 @@ public class Server extends Thread{
     public void run(){
         final Thread thread = new Thread(() -> {
             try {
-//                verifyUsersConnectivity();
                   checkWordFrequencyDirectMessages();
                   checkWordFrequencyTopics();
             } catch (IOException e) {}
         });
-
-        //every 5 seconds verify user connectivity
         serverScheduler.scheduleAtFixedRate(thread, 0, 10000, TimeUnit.MILLISECONDS);
     }
-
-//    //checks the timestamp of all users
-//    public void verifyUsersConnectivity() throws IOException{
-//        List<String> clients = new ArrayList(clientList.keySet());
-//
-//        for(String client: clients){
-//            Iterator<Map.Entry<String, Long>> iterator = clientList.entrySet().iterator();
-//            while (iterator.hasNext()){
-//                Map.Entry<String, Long> entry = iterator.next();
-//                if(client.equals(entry.getKey())) {
-//                    long idleTime = (-1 * (entry.getValue() - serverTimestamp.getTime()));
-//                    if(idleTime > 5100){
-//                        System.out.println("Client " + client + " idle for: " + idleTime/1000 + " seconds, removing");
-//                        clientList.remove(client);
-//                        iterator.remove();
-//                    }
-//                    else {
-//                        System.out.println("Client " + client + " idle for: " + idleTime/1000 + " seconds, updating timeStamp");
-//                    }
-//                }
-//            }
-//        }
-//    }
 
     public static void checkWordFrequencyDirectMessages() throws IOException{
         List<String> words = new ArrayList<>(wordList.keySet());
@@ -126,16 +100,6 @@ public class Server extends Thread{
                 wordListTopic.put(word,wordListTopic.get(word) + 1);
             }
         }
-    }
-
-
-
-    //shows all online users
-    public static void showOnlineUsers(){
-        List<String> clients = new ArrayList(clientList.keySet());
-
-        System.out.println(clients);
-
     }
 
     //returns true if user is still in the list and sets his timestamp

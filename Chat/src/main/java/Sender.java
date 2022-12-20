@@ -36,7 +36,6 @@ public class Sender {
                 }
     }
 
-
     public String postMessage(Channel channel, String message, String queue, String sender){
             try
             {
