@@ -22,6 +22,8 @@ public class Sender {
         prodConnection = producerFactory.newConnection();
         prodChannel = prodConnection.createChannel();
 
+        prodChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
+
     }
 
 
@@ -132,32 +134,19 @@ public class Sender {
         prodConnection.close();
     }
 
-    public String postTopic(Channel channel, String message1, String topicType)
+    public String postTopic(Channel channel, String message, String topicType)
     {
         try
         {
-            channel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
-            prodChannel.exchangeDeclare("my-topic-exchange", BuiltinExchangeType.TOPIC,true);
 
-            prodChannel.queueDeclare("HealthQ", true, false, false, null);
-            prodChannel.queueDeclare("SportsQ", true, false, false, null);
-            prodChannel.queueDeclare("EducationQ", true, false, false, null);
 
-            prodChannel.queueBind("HealthQ", "my-topic-exchange", "health.*");
-            prodChannel.queueBind("SportsQ", "my-topic-exchange", "#.sports.*");
-            prodChannel.queueBind("EducationQ", "my-topic-exchange", "#.education");
             AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
                     .expiration("10000")
                     .build();
 
-            String message = "Drink a lot of Water and stay Healthy!";
-            channel.basicPublish("my-topic-exchange", "health.education", null, message.getBytes());
+            channel.basicPublish("my-topic-exchange", topicType, null, message.getBytes());
 
-            message = "Learn something new everyday";
-            channel.basicPublish("my-topic-exchange", "education", null, message.getBytes());
 
-            message = "Stay fit in Mind and Body";
-            channel.basicPublish("my-topic-exchange", "education.health", null, message.getBytes());
             return "";
         }
         catch(IOException e)

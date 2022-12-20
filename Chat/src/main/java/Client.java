@@ -12,10 +12,10 @@ public class Client {
     private String user;
     private final ScheduledExecutorService clientScheduler = Executors.newScheduledThreadPool(1);
 
-    public Client(String user) throws IOException, TimeoutException {
+    public Client(String user, String desiredTopic) throws IOException, TimeoutException {
         this.user = user;
         this.producer = new Sender();
-        this.consumer = new Receiver(user);
+        this.consumer = new Receiver(user,desiredTopic);
         String result = sendMessage("addUser" + "->" + user, "server","");
         if (result.equals("false"))
             System.out.println("Exists User");

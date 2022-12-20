@@ -21,8 +21,11 @@ public class Main {
         }else if(aux.equals("2")){ // this part handles the creation of the client
             try {
                 System.out.println("Please type your username : ");
+                String username = scanner.nextLine();
+                System.out.println("Please subscribe to a topic to one of the topics : Football, Basketball, Volleyball");
+                String topicType = scanner.nextLine();
                 Client newClient = null;
-                newClient = new Client(scanner.nextLine());
+                newClient = new Client(username,topicType.toLowerCase());
                 System.out.println("What do you want to do?");
                 System.out.println("For sending a message to a user simply type |the desired username destination|->Message");
                 System.out.println("For sending a topic message simply type topic->Football->Message");
@@ -38,7 +41,7 @@ public class Main {
                             if(input.contains("->")) {
                                 String[] request = input.split("->");
                                 if(request.length >2){
-                                    newClient.sendMessage(request[2],request[0],request[1]);
+                                    newClient.sendMessage(request[2],request[0],request[1].toLowerCase());
                                 }else{
                                     newClient.sendMessage(request[1],request[0],"");
                                 }
