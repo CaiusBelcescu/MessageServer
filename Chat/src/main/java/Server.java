@@ -1,5 +1,3 @@
-
-import Models.ModelTimestamp;
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
@@ -10,7 +8,6 @@ import java.util.concurrent.*;
 
 public class Server extends Thread{
     private static Map<String, Long> clientList = new ConcurrentHashMap<>();
-    private static ModelTimestamp serverTimestamp = new ModelTimestamp();
     private final ScheduledExecutorService serverScheduler = Executors.newScheduledThreadPool(1);
     private static Map<String, Integer> wordList = new ConcurrentHashMap<>();
     private static Map<String, Integer> wordListTopic = new ConcurrentHashMap<>();
@@ -36,7 +33,7 @@ public class Server extends Thread{
                 max= word.getValue();
             }
         }
-        System.out.println("The most used word is:" + key);
+        System.out.println("What is trending right now in direct messages: " +"#"+ key);
     }
 
 
@@ -51,7 +48,7 @@ public class Server extends Thread{
                 max= word.getValue();
             }
         }
-        System.out.println("The most used word in a topic is:" + key);
+        System.out.println("What is trending right now in topics: "+ "#"+ key);
     }
 
     //add user to clientList
@@ -60,7 +57,7 @@ public class Server extends Thread{
 
         if(!clients.contains(username))
         {
-            clientList.put(username, serverTimestamp.getTime());
+            clientList.put(username,1l);
             System.out.println("Added new user! (" + username + ")");
         }
         else System.out.println("User " + username + " exists!" );
@@ -102,20 +99,6 @@ public class Server extends Thread{
         }
     }
 
-    //returns true if user is still in the list and sets his timestamp
-    public static boolean setUserTimestamp(String user){
-        Iterator<Map.Entry<String, Long>> iterator = clientList.entrySet().iterator();
-
-        while (iterator.hasNext()){
-            Map.Entry<String, Long> entry = iterator.next();
-            if(user.equals(entry.getKey())){
-                entry.setValue(Long.parseLong(""+serverTimestamp.getTime()));
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     //creates server queue
     public static void task() throws IOException, TimeoutException {
@@ -144,9 +127,6 @@ public class Server extends Thread{
             switch(request[0]){
                 case "addUser":
                     addUser(request[1]);
-                    break;
-                case "PING":
-                    setUserTimestamp(request[1]);
                     break;
                 case "CONNECTED?":
                     if(isUserConnected(request[1]))

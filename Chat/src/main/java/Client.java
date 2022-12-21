@@ -23,7 +23,7 @@ public class Client {
         return user;
     }
 
-    public String sendMessage(String message, String user,String topicType) throws IOException, TimeoutException {
+    public String sendMessage(String message, String user,String topicType) throws IOException {
 
         try {
             String result = sender.sendMessage(message, user, getUser(),topicType);
