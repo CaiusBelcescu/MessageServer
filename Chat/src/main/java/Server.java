@@ -1,83 +1,25 @@
+
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 
-
-public class Server extends Thread{
-    private static Map<String, Long> clientList = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService serverScheduler = Executors.newScheduledThreadPool(1);
+public class Server {
+    private static ServerSocket serverSocket = null;
+    private static Socket clientSocket = null;
+    private static final ArrayList<ClientHandler> CLIENT_HANDLER_LIST = new ArrayList<ClientHandler>();
     private static Map<String, Integer> wordList = new ConcurrentHashMap<>();
     private static Map<String, Integer> wordListTopic = new ConcurrentHashMap<>();
 
-    public void run(){
-        final Thread thread = new Thread(() -> {
-            try {
-                  checkWordFrequencyDirectMessages();
-                  checkWordFrequencyTopics();
-            } catch (IOException e) {}
-        });
-        serverScheduler.scheduleAtFixedRate(thread, 0, 10000, TimeUnit.MILLISECONDS);
-    }
-
-    public static void checkWordFrequencyDirectMessages() throws IOException{
-        List<String> words = new ArrayList<>(wordList.keySet());
-        Integer max = 0;
-        String key="";
-        for(Map.Entry<String, Integer> word: wordList.entrySet())
-        {
-            if(max < word.getValue()){
-                key = word.getKey();
-                max= word.getValue();
-            }
-        }
-        System.out.println("What is trending right now in direct messages: " +"#"+ key);
-    }
-
-
-    public static void checkWordFrequencyTopics() throws IOException{
-        List<String> words = new ArrayList<>(wordListTopic.keySet());
-        Integer max = 0;
-        String key="";
-        for(Map.Entry<String, Integer> word: wordListTopic.entrySet())
-        {
-            if(max < word.getValue()){
-                key = word.getKey();
-                max= word.getValue();
-            }
-        }
-        System.out.println("What is trending right now in topics: "+ "#"+ key);
-    }
-
-    //add user to clientList
-    public static void addUser(String username) {
-        List<String> clients = new ArrayList(clientList.keySet());
-
-        if(!clients.contains(username))
-        {
-            clientList.put(username,1l);
-            System.out.println("Added new user! (" + username + ")");
-        }
-        else System.out.println("User " + username + " exists!" );
-
-    }
-
-    //returns true if user is connected
-    public static boolean isUserConnected(String user){
-        List<String> clients = new ArrayList(clientList.keySet());
-
-        if(clients.contains(user)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    public static void refreshWords(String message){
+    public static void refreshWords(String message) throws IOException {
         String[] words = message.split(" ");
-
         for(String word:words){
             if(!wordList.containsKey(word)){
                 wordList.put(word, 1);
@@ -85,24 +27,23 @@ public class Server extends Thread{
                 wordList.put(word,wordList.get(word) + 1);
             }
         }
+        checkWordFrequencyDirectMessages();
     }
 
-    public static void topicWords(String message){
+    public static void topicWords(String message) throws IOException {
         String[] words = message.split(" ");
-
-        for(String word:words){
-            if(!wordListTopic.containsKey(word)){
+        for(String word:words) {
+            if (!wordListTopic.containsKey(word)) {
                 wordListTopic.put(word, 1);
-            }else{
-                wordListTopic.put(word,wordListTopic.get(word) + 1);
+            } else {
+                wordListTopic.put(word, wordListTopic.get(word) + 1);
             }
         }
+        checkWordFrequencyTopics();
     }
 
 
-    //creates server queue
     public static void task() throws IOException, TimeoutException {
-
         ConnectionFactory connectionFactory = new ConnectionFactory();
         connectionFactory.setHost("localhost");
 
@@ -125,14 +66,6 @@ public class Server extends Thread{
             String[] request = new String(delivery.getBody(), StandardCharsets.UTF_8).split("->");
 
             switch(request[0]){
-                case "addUser":
-                    addUser(request[1]);
-                    break;
-                case "CONNECTED?":
-                    if(isUserConnected(request[1]))
-                        response = "true";
-                    else response = "false";
-                    break;
                 case "RefreshWords":
                     refreshWords(request[1]);
                     break;
@@ -144,9 +77,53 @@ public class Server extends Thread{
             serverChannel.basicPublish("", delivery.getProperties().getReplyTo(), replyProprieties, response.getBytes(StandardCharsets.UTF_8));
             serverChannel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
         };
-
         serverChannel.basicConsume("server",  false, serverCallback, (CONSUMER -> {}));
+    }
+    public static void checkWordFrequencyDirectMessages() throws IOException{
+        List<String> words = new ArrayList<>(wordList.keySet());
+        Integer max = 0;
+        String key="";
+        for(Map.Entry<String, Integer> word: wordList.entrySet())
+        {
+            if(max < word.getValue()){
+                key = word.getKey();
+                max= word.getValue();
+            }
+        }
+        System.out.println("What is trending right now in direct messages: " +"#"+ key);
+    }
+    public static void checkWordFrequencyTopics() throws IOException{
+        List<String> words = new ArrayList<>(wordListTopic.keySet());
+        Integer max = 0;
+        String key="";
+        for(Map.Entry<String, Integer> word: wordListTopic.entrySet())
+        {
+            if(max < word.getValue()){
+                key = word.getKey();
+                max= word.getValue();
+            }
+        }
+        System.out.println("What is trending right now in topics: "+ "#"+key);
+    }
+    public static void StartServer() throws IOException, TimeoutException {
+        Server.task();
+        int port = 8080;
+        try {
+            serverSocket = new ServerSocket(port);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+        while (true) {
+            try {
 
-
+                clientSocket = serverSocket.accept();
+                ClientHandler clientHandler = new ClientHandler(clientSocket, CLIENT_HANDLER_LIST);
+                clientHandler.start();
+                CLIENT_HANDLER_LIST.add(clientHandler);
+                System.out.println("Client added");
+            } catch (IOException | TimeoutException e) {
+                System.out.println(e);
+            }
+        }
     }
 }
