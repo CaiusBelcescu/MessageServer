@@ -78,11 +78,11 @@ public class ClientHandler extends Thread {
         PrivateMessage privateMessage = new PrivateMessage(sender, receiver, message);
         this.privateMessage.offer(privateMessage);
     }
-    private void createTopic(String header, String message) {
+    private synchronized void createTopic(String header, String message) {
         TopicMessage topicMessage = new TopicMessage(header, message);
         publicMessage.add(topicMessage);
     }
-    public void getMessage() {
+    public synchronized void getMessage() {
         PrivateMessage privateMessage = null;
         try {
             privateMessage = this.privateMessage.poll(1000, TimeUnit.MILLISECONDS);
@@ -150,7 +150,7 @@ public class ClientHandler extends Thread {
         return name;
     }
 
-    private void sendPrivateMessage(String line) {
+    private synchronized void sendPrivateMessage(String line) {
         String[] words = line.split("\s", 2);
         if (words.length > 1 && words[1] != null) {
             words[1] = words[1].trim();
@@ -177,12 +177,11 @@ public class ClientHandler extends Thread {
         }
     }
 
-    private void createTopic(String line) {
+    private synchronized void createTopic(String line) {
         String[] topic = line.split("->", 3);
-        synchronized (this) {
-            createTopic(topic[1],topic[2]);
-            requestToServer(senderChannel, "TopicWords->"+topic[2],"server");
-        }
+        createTopic(topic[1],topic[2]);
+        requestToServer(senderChannel, "TopicWords->"+topic[2],"server");
+
     }
 
     public boolean checkUserConnectivity(String name){
@@ -194,15 +193,13 @@ public class ClientHandler extends Thread {
         return isUser;
     }
 
-    private void displayTopicMessage(String line) {
+    private synchronized void displayTopicMessage(String line) {
         String[] topic = line.split("->", 2);
-        synchronized (this) {
-            if (topic.length == 2) {
-                displayTopicMessage(topic);
-            } else {
-                this.outputStream.println("Please specify from which topic you want to read the messages by writing:/displayTopicMessages->NameOfTopic");
-                displayAvailableTopics();
-            }
+        if (topic.length == 2) {
+            displayTopicMessage(topic);
+        } else {
+            this.outputStream.println("Please specify from which topic you want to read the messages by writing:/displayTopicMessages->NameOfTopic");
+            displayAvailableTopics();
         }
     }
     private void displayAvailableTopics() {
